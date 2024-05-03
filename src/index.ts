@@ -20,8 +20,12 @@ const rgbToHex = (r: number, g: number, b: number): `#${string}` => {
 
 type Colors = { value: number; color: `#${string}` }[];
 
-// eslint-disable-next-line max-statements
-const getColor = (colors: Colors, temperature: number) => {
+/**
+ * Returns a hex color based on the value and the provided colors.
+ * @param colors
+ * @param value
+ */
+const getColor = (colors: Colors, value: number) => { // eslint-disable-line max-statements
     if (colors.length === 0) {
         throw new TypeError("Colors array is empty");
     }
@@ -30,21 +34,21 @@ const getColor = (colors: Colors, temperature: number) => {
         return colors[0]!.color;
     }
 
-    if (temperature <= colors[0]!.value) {
+    if (value <= colors[0]!.value) {
         return colors[0]!.color;
     }
 
-    if (temperature >= colors.at(-1)!.value) {
+    if (value >= colors.at(-1)!.value) {
         return colors.at(-1)!.color;
     }
 
-    const exactMatch = colors.find(color => color.value === temperature);
+    const exactMatch = colors.find(color => color.value === value);
     if (exactMatch) {
         return exactMatch.color;
     }
 
     const lowerColorIdx = colors.findIndex((color, index) => {
-        return temperature >= color.value && temperature < colors[index + 1]!.value;
+        return value >= color.value && value < colors[index + 1]!.value;
     });
 
     const higherColorIdx = lowerColorIdx + 1;
@@ -52,7 +56,7 @@ const getColor = (colors: Colors, temperature: number) => {
     const higherColor = colors[higherColorIdx]!;
 
     const distance = higherColor.value - lowerColor.value;
-    const progress = (temperature - lowerColor.value) / distance;
+    const progress = (value - lowerColor.value) / distance;
 
     const lowerColorRGB = hexToRgb(lowerColor.color);
     const higherColorRGB = hexToRgb(higherColor.color);
@@ -69,8 +73,18 @@ const round = (num: number, precision = 0) => {
     return Math.round(num * factor) / factor;
 };
 
+/**
+ * Returns a CSS gradient based on the from-to values and the provided colors.
+ * @param colors
+ * @param from
+ * @param to
+ */
 const getCSSGradient = (colors: Colors, from: number, to: number) => {
-    const filteredColors = colors.filter(color => color.value >= from && color.value <= to);
+    const fromIndex = colors.findLastIndex(color => color.value <= from);
+    const toIndex = colors.findIndex(color => color.value >= to) - 1;
+
+    const filteredColors = colors.slice(fromIndex, toIndex + 1);
+
     if (filteredColors.length === 0) {
         throw new TypeError("No colors in the range");
     }
@@ -86,16 +100,43 @@ const getCSSGradient = (colors: Colors, from: number, to: number) => {
     const gradient = filteredColors.map(color => {
         const distance = lastValue - firstValue;
         const progressPerc = ((color.value - firstValue) / distance) * 100;
+        if (progressPerc < 0) {
+            return "";
+        }
 
         return `${color.color} ${round(progressPerc, 2)}%`;
-    }).join(", ");
+    }).filter(Boolean).join(", ");
 
     return `linear-gradient(to right, ${gradient})`;
 };
 
+const recommendedTemperatureColors: Colors = [
+    {
+        value: -30,
+        color: "#0046B9",
+    },
+    {
+        value: 0,
+        color: "#00FFFF",
+    },
+    {
+        value: 10,
+        color: "#01cc01",
+    },
+    {
+        value: 20,
+        color: "#FFFF00",
+    },
+    {
+        value: 30,
+        color: "#FF4D00",
+    },
+];
+
 export {
     getColor,
     getCSSGradient,
+    recommendedTemperatureColors,
 };
 
 export type {
